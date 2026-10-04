@@ -1,0 +1,32 @@
+{
+  "certificate": "DCO-1.1",
+  "attestations": [
+    {
+      "sha": "d0550d21fbbd0abb35eb8c7626553d9e1ab13b8c",
+      "authorName": "Mateo",
+      "authorEmail": "mateoltd@users.noreply.github.com",
+      "subject": "test(scale): add Section 16.7 production qualification",
+      "certificate": "DCO-1.1",
+      "statement": "and yes, sign off in the DCOs PLEASE I already approveed several times",
+      "signedOffBy": "Mateo <mateoltd@users.noreply.github.com>"
+    },
+    {
+      "sha": "ffec495195f2dde688bbfaa7be49454f687482ac",
+      "authorName": "Mateo",
+      "authorEmail": "mateoltd@users.noreply.github.com",
+      "subject": "fix(packaging): preserve reviewed dependency licenses",
+      "certificate": "DCO-1.1",
+      "statement": "I attest DCO 1.1 for this new contribution as Mateo <mateoltd@users.noreply.github.com>",
+      "signedOffBy": "Mateo <mateoltd@users.noreply.github.com>"
+    },
+    {
+      "sha": "a2025f5d6330ecc974066605b8936563035bb4b1",
+      "authorName": "Mateo",
+      "authorEmail": "mateoltd@users.noreply.github.com",
+      "subject": "fix(ci): bound dependency review output transport",
+      "certificate": "DCO-1.1",
+      "statement": "I attest DCO 1.1 for this new contribution as Mateo <mateoltd@users.noreply.github.com>",
+      "signedOffBy": "Mateo <mateoltd@users.noreply.github.com>"
+    }
+  ]
+}

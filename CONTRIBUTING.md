@@ -42,6 +42,14 @@ The sign-off certifies that you have the right to submit the contribution under 
 Apache-2.0 license. Pull requests fail when an author's commit lacks a matching `Signed-off-by`
 trailer.
 
+Where history must remain unchanged, explicitly approved supplemental author attestations can be
+recorded in `config/supplemental-dco-attestations.json`. Each record binds a genuine DCO 1.1
+statement or explicit author authorization for the DCO sign-off to one full immutable commit SHA and
+its original author name, email and subject. Approval of a contribution or another gate does not
+supply a DCO statement or approve this recording method. New commits still require their own author
+sign-off; copying a covered message or using the same author identity does not extend a supplemental
+record to another SHA.
+
 ## Pull requests
 
 Before requesting review:
