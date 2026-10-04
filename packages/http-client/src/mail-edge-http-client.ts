@@ -82,29 +82,49 @@ const boundedJson = async (
 ): Promise<Result<unknown, MailEdgeError>> => {
   if (response.body === null)
     return { error: failure("INTERNAL", "missing_body", false), ok: false };
-  const declared = response.headers.get("content-length");
-  if (declared !== null && Number(declared) > maximumBytes) {
-    await response.body.cancel("json_limit");
-    return { error: failure("VALIDATION_FAILED", "json_limit", false), ok: false };
-  }
   const chunks: Uint8Array[] = [];
-  let observed = 0;
-  for await (const chunk of Readable.fromWeb(response.body)) {
-    signal.throwIfAborted();
-    if (!(chunk instanceof Uint8Array)) {
-      return { error: failure("INTERNAL", "response_chunk", false), ok: false };
-    }
-    observed += chunk.byteLength;
-    if (!Number.isSafeInteger(observed) || observed > maximumBytes) {
+  try {
+    const declared = response.headers.get("content-length");
+    if (declared !== null && Number(declared) > maximumBytes) {
       await response.body.cancel("json_limit");
       return { error: failure("VALIDATION_FAILED", "json_limit", false), ok: false };
     }
-    chunks.push(Uint8Array.from(chunk));
-  }
-  try {
-    return { ok: true, value: JSON.parse(Buffer.concat(chunks, observed).toString("utf8")) };
+    let observed = 0;
+    const body = Readable.fromWeb(response.body, { signal });
+    for await (const chunk of body) {
+      if (!(chunk instanceof Uint8Array)) {
+        return { error: failure("INTERNAL", "response_chunk", false), ok: false };
+      }
+      observed += chunk.byteLength;
+      if (!Number.isSafeInteger(observed) || observed > maximumBytes) {
+        // The Node stream owns the locked Web reader and cancels it on destruction.
+        body.destroy();
+        return { error: failure("VALIDATION_FAILED", "json_limit", false), ok: false };
+      }
+      chunks.push(Uint8Array.from(chunk));
+    }
+    const bytes = Buffer.concat(chunks, observed);
+    try {
+      return { ok: true, value: JSON.parse(bytes.toString("utf8")) };
+    } catch (cause) {
+      return { error: failure("INTERNAL", "response_json", false, cause), ok: false };
+    } finally {
+      bytes.fill(0);
+    }
   } catch (cause) {
-    return { error: failure("INTERNAL", "response_json", false, cause), ok: false };
+    return {
+      error: new MailEdgeError({
+        cause,
+        code: "HOST_UNAVAILABLE",
+        deliveryCertainty: "unknown",
+        message: "Mail Edge HTTP response could not be consumed.",
+        retryable: false,
+        safeDetails: { reason: "response_body" },
+      }),
+      ok: false,
+    };
+  } finally {
+    for (const chunk of chunks) chunk.fill(0);
   }
 };
 

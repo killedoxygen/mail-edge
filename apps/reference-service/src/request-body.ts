@@ -1,5 +1,5 @@
 import type { IncomingMessage } from "node:http";
-import { Readable } from "node:stream";
+import { Readable, addAbortSignal } from "node:stream";
 import { isUint8Array } from "node:util/types";
 
 import type {
@@ -98,6 +98,7 @@ export const collectBoundedJson = async (
   const chunks: Uint8Array[] = [];
   let observed = 0;
   try {
+    addAbortSignal(signal, body);
     for await (const chunk of body) {
       signal.throwIfAborted();
       if (!isUint8Array(chunk)) throw new TypeError("JSON request yielded a non-byte chunk.");
@@ -125,7 +126,6 @@ export const collectBoundedJson = async (
       };
     } finally {
       bytes.fill(0);
-      chunks.forEach((chunk) => chunk.fill(0));
     }
   } catch (cause) {
     if (!body.destroyed) body.destroy();
@@ -140,6 +140,8 @@ export const collectBoundedJson = async (
       ),
       ok: false,
     };
+  } finally {
+    chunks.forEach((chunk) => chunk.fill(0));
   }
 };
 

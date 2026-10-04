@@ -144,6 +144,32 @@ describe("reference service HTTP boundaries", () => {
     expect((await fixture.http.close()).ok).toBe(true);
   });
 
+  it("cancels stalled provider streaming when the service shuts down", async () => {
+    const shutdown = new AbortController();
+    const fixture = await createHttpFixture({}, shutdown.signal);
+    expect((await fixture.http.start(new AbortController().signal)).ok).toBe(true);
+    const address = fixture.http.address;
+    if (address === undefined) throw new Error("HTTP fixture did not listen.");
+    const target = new URL(address);
+    const request = httpRequest({
+      headers: { "content-type": "application/octet-stream", "transfer-encoding": "chunked" },
+      host: target.hostname,
+      method: "POST",
+      path: `${providerPath}/inbound`,
+      port: target.port,
+    });
+    request.on("error", () => undefined);
+    try {
+      request.write("ma");
+      await expect.poll(() => fixture.state.ingressEntered).toBe(true);
+      shutdown.abort();
+      await expect.poll(() => fixture.state.bodyAborted).toBe(true);
+    } finally {
+      request.destroy();
+      expect((await fixture.http.close()).ok).toBe(true);
+    }
+  });
+
   it("rejects cross-tenant and unauthenticated operator attempts without invoking the SDK", async () => {
     const fixture = await createHttpFixture();
     const crossTenant = await fixture.http.instance.inject({

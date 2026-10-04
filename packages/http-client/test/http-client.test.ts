@@ -1,3 +1,6 @@
+import { once } from "node:events";
+import { createServer } from "node:http";
+
 import { describe, expect, it } from "vitest";
 
 import {
@@ -193,4 +196,116 @@ describe("MailEdgeHttpClient", () => {
       });
     },
   );
+  it.each([false, true])(
+    "returns a typed limit error and cancels an oversized response, declared=%s",
+    async (declared) => {
+      let canceled = false;
+      const response = new Response(
+        new ReadableStream<Uint8Array>({
+          start(controller) {
+            controller.enqueue(new Uint8Array(65));
+          },
+          cancel() {
+            canceled = true;
+          },
+        }),
+        {
+          headers: {
+            "content-type": "application/json",
+            ...(declared ? { "content-length": "65" } : {}),
+          },
+        },
+      );
+      const client = new MailEdgeHttpClient({
+        config: {
+          baseUrl: "https://edge.example.test",
+          maximumJsonBytes: 64,
+          requestTimeoutMilliseconds: 5000,
+        },
+        fetchImplementation: () => Promise.resolve(response),
+        tokens: { resolve: () => Promise.resolve({ ok: true, value: "a".repeat(32) }) },
+      });
+      await expect(
+        client.getOutboundIntent(tenantId, intentId, new AbortController().signal),
+      ).resolves.toMatchObject({
+        ok: false,
+        error: {
+          code: "VALIDATION_FAILED",
+          retryable: false,
+          safeDetails: { reason: "json_limit" },
+        },
+      });
+      expect(canceled).toBe(true);
+    },
+  );
+
+  it("returns a typed transport error when response consumption fails", async () => {
+    const client = new MailEdgeHttpClient({
+      config: {
+        baseUrl: "https://edge.example.test",
+        maximumJsonBytes: 64,
+        requestTimeoutMilliseconds: 5000,
+      },
+      fetchImplementation: () =>
+        Promise.resolve(
+          new Response(
+            new ReadableStream<Uint8Array>({
+              start(controller) {
+                controller.error(new Error("private transport failure"));
+              },
+            }),
+            { headers: { "content-type": "application/json" } },
+          ),
+        ),
+      tokens: { resolve: () => Promise.resolve({ ok: true, value: "a".repeat(32) }) },
+    });
+    await expect(
+      client.getOutboundIntent(tenantId, intentId, new AbortController().signal),
+    ).resolves.toMatchObject({
+      ok: false,
+      error: {
+        code: "HOST_UNAVAILABLE",
+        deliveryCertainty: "unknown",
+        retryable: false,
+        safeDetails: { reason: "response_body" },
+      },
+    });
+  });
+  it("returns a typed failure for real chunked HTTP overflow", async () => {
+    const server = createServer((_request, response) => {
+      response.writeHead(200, { "content-type": "application/json" });
+      response.write("1".repeat(65));
+      response.end();
+    });
+    try {
+      server.listen(0, "127.0.0.1");
+      await once(server, "listening");
+      const address = server.address();
+      if (address === null || typeof address === "string")
+        throw new Error("HTTP fixture did not listen.");
+      const client = new MailEdgeHttpClient({
+        config: {
+          baseUrl: `http://127.0.0.1:${String(address.port)}`,
+          maximumJsonBytes: 64,
+          requestTimeoutMilliseconds: 2000,
+        },
+        tokens: { resolve: () => Promise.resolve({ ok: true, value: "a".repeat(32) }) },
+      });
+      await expect(
+        client.getOutboundIntent(tenantId, intentId, new AbortController().signal),
+      ).resolves.toMatchObject({
+        ok: false,
+        error: { code: "VALIDATION_FAILED", safeDetails: { reason: "json_limit" } },
+      });
+    } finally {
+      server.closeAllConnections();
+      if (server.listening)
+        await new Promise<void>((resolve, reject) =>
+          server.close((error) => {
+            if (error === undefined) resolve();
+            else reject(error);
+          }),
+        );
+    }
+  });
 });

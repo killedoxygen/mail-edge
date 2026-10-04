@@ -1,4 +1,4 @@
-import { Readable } from "node:stream";
+import { Readable, addAbortSignal } from "node:stream";
 import { finished } from "node:stream/promises";
 
 import { TypeBoxValidatorCompiler } from "@fastify/type-provider-typebox";
@@ -1372,6 +1372,8 @@ export class ReferenceHttpServer implements LifecycleComponent {
       this.#dependencies.shutdownSignal,
       timeoutMilliseconds,
     );
+    // Tie stream consumption to the operation deadline even while no bytes arrive.
+    if (request.body instanceof Readable) addAbortSignal(scope.signal, request.body);
     const lease = await this.#dependencies.gate.acquire(scope.signal);
     if (!lease.ok) {
       scope.close();
