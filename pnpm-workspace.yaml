@@ -25,6 +25,9 @@ minimumReleaseAgeExclude:
 onlyBuiltDependencies:
   - esbuild
 overrides:
+  # Only these reviewed consumers use the private three-operation matcher adapter.
+  "eslint-plugin-boundaries@7.2.0>micromatch": file:./config/boundary-matcher
+  "@boundaries/elements@3.1.1>micromatch": file:./config/boundary-matcher
   undici: 7.29.1
   # Patch vulnerable resolutions without crossing their installed major versions.
   "@grpc/grpc-js@1.14.4": 1.14.5
