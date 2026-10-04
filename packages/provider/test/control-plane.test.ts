@@ -8,7 +8,9 @@ import type { BindingPlanV1, ProviderAdapterIdentity } from "../src/spi.js";
 import { providerId } from "./fixtures.js";
 
 const identity: ProviderAdapterIdentity = { adapterVersion: "1.0.0", mode: "fixture", providerId };
-const expectedDesiredDigest = sha256CanonicalJson({ domain: "example.test" });
+const expectedDesiredDigest = "4a82012c76eab2807bb2ed4adeca699da9c05af6df794215ef4fc3936b015956";
+// SHA-256 of the fixture JSON with recursively sorted keys and no whitespace.
+const expectedPlanDigest = "35ceb1c76e89de1b67d08dc07da5065a102fb6fa729525745dba234a100d9178";
 const plan = (): BindingPlanV1 => ({
   createdAt: "2026-08-13T08:00:00Z",
   desiredDigest: expectedDesiredDigest,
@@ -31,7 +33,7 @@ describe("provider control-plane plans", () => {
     expect(
       inspectBindingPlan(plan(), identity, expectedDesiredDigest, "2026-08-13T08:01:00Z"),
     ).toMatchObject({
-      planDigest: bindingPlanDigest(plan()),
+      planDigest: expectedPlanDigest,
       valid: true,
     });
   });
@@ -50,9 +52,13 @@ describe("provider control-plane plans", () => {
     ).toEqual(
       expect.arrayContaining(["duplicate_operation_id", "plan_expired", "plan_identity_mismatch"]),
     );
-    expect(sha256CanonicalJson(plan() as unknown as CanonicalJsonValue)).toBe(
-      bindingPlanDigest(plan()),
-    );
+    expect(sha256CanonicalJson(plan() as unknown as CanonicalJsonValue)).toBe(expectedPlanDigest);
+    expect(
+      bindingPlanDigest({
+        ...plan(),
+        identity: { providerId, mode: "fixture", adapterVersion: "1.0.0" },
+      }),
+    ).toBe(expectedPlanDigest);
   });
 
   it("rejects future, unsorted, and wrong-desired-digest plans", () => {

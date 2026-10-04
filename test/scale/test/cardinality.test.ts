@@ -33,7 +33,7 @@ describe("bounded cardinality workloads", () => {
     });
   });
 
-  it("streams aliases without retaining them and reports before/after RSS", () => {
+  it("counts streamed aliases and reports injected before/after RSS", () => {
     const result = new CardinalityRunner(
       {
         aliasCount: 1000,
@@ -48,6 +48,7 @@ describe("bounded cardinality workloads", () => {
     expect(result.aliasCount).toBe(1000);
     expect(result.exactDomainLookupEntries).toBe(10);
     expect(result.lookupMisses).toBe(0);
+    // These are report fields, not measurements of real peak memory or retention.
     expect(result.retainedAliasCount).toBe(0);
     expect(result.rssObservation).toBe("before_after_only");
     expect(result.rssDeltaBytes).toBe(100);
