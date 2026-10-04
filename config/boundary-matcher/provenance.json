@@ -1,0 +1,19 @@
+{
+  "name": "micromatch",
+  "version": "4.0.8",
+  "gitHead": "8bd704ec0d9894693d35da425d827819916be920",
+  "tarball": "https://registry.npmjs.org/micromatch/-/micromatch-4.0.8.tgz",
+  "integrity": "sha512-PXwfBhYu0hBCPw8Dn0E+WDYb7af3dSLVWKi3HGv84IdF4TyFoC0ysxFd0Goxw7nSv4T/PzEJQxsYsEiFCKo2BA==",
+  "indexSha256": "6a56366fcf3ae8e678e574900a0acb2ea6f118ea030d09bcc1b1053ccab916bb",
+  "licenseSha256": "35bdd8a44339719441900fb50fbefc5e2dca1ca662cbaed7a687de842c8b70f2",
+  "derivedFunctions": ["isMatch", "makeRe", "capture"],
+  "engine": {
+    "name": "picomatch",
+    "version": "2.3.2",
+    "reason": "same exact engine in the original installed micromatch closure"
+  },
+  "consumers": {
+    "eslint-plugin-boundaries": "7.2.0",
+    "@boundaries/elements": "3.1.1"
+  }
+}

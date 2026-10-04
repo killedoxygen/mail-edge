@@ -21,6 +21,14 @@ Use Conventional Commit messages. Add a Changeset when a publishable package's b
 API changes. API Extractor reports are reviewed public API artifacts and must be updated through the
 configured command, never edited by hand.
 
+The full-range CI formatting check uses `scripts/check-commitlint.mjs <base-sha> <head-sha>`.
+`config/historical-commit-formatting.json` records the maintainer-approved disposition for exactly
+eleven historical `type-enum` findings and one historical `body-max-line-length` finding. Each entry
+is bound to its full immutable commit SHA and original subject; all other findings and future
+commits retain the existing commitlint rules. These formatting dispositions do not cover DCO
+sign-offs or any other gate. Running `pnpm commitlint:check` also proves new invalid messages remain
+rejected.
+
 ## Developer Certificate of Origin
 
 Contributions use the [Developer Certificate of Origin 1.1](https://developercertificate.org/). Sign
@@ -33,6 +41,14 @@ git commit -s -m "type: concise description"
 The sign-off certifies that you have the right to submit the contribution under the repository's
 Apache-2.0 license. Pull requests fail when an author's commit lacks a matching `Signed-off-by`
 trailer.
+
+Where history must remain unchanged, explicitly approved supplemental author attestations can be
+recorded in `config/supplemental-dco-attestations.json`. Each record binds a genuine DCO 1.1
+statement or explicit author authorization for the DCO sign-off to one full immutable commit SHA and
+its original author name, email and subject. Approval of a contribution or another gate does not
+supply a DCO statement or approve this recording method. New commits still require their own author
+sign-off; copying a covered message or using the same author identity does not extend a supplemental
+record to another SHA.
 
 ## Pull requests
 
